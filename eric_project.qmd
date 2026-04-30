@@ -1,0 +1,184 @@
+---
+title: "Train Loading Statistics"
+subtitle: "Relationship Between Volume and Load TIme"
+author: 
+        name: Eric Clugy
+        email: eclugy@gmail.com
+year: 2026
+date: today
+format: 
+        html:
+                theme: cosmo
+                self-contained: true
+                code-fold: true
+        docx:
+                toc: true
+                number-sections: true       
+---
+
+```{r}
+#| label: setup
+#| echo: false
+#| warning: false
+#| message: false 
+
+library(tidyverse)
+library(ggplot2)
+library(stargazer)
+library(readxl)
+
+Train_Tracking <- read_excel("data/Train Tracking.xlsx")
+
+view (Train_Tracking)
+
+```
+
+## Introduction
+
+This project analyzes train tracking data to examine the relationship between shipment volume and total load time. The dataset includes operational records such as the number of barrels (BBLS) transported and the total hours required to complete each load. Understanding this relationship is important because load time is a key factor in operational efficiency and scheduling within transportation systems.
+
+It is reasonable to expect that larger shipment volumes require more time to load and process. As the number of barrels increases, additional time may be needed for handling, coordination, and equipment usage. This aligns with general operational principles where increased workload typically results in longer processing times.
+
+**If my model is correct, there will be a positive linear relationship between shipment volume (BBLS) and total hours.**
+
+## Descriptive Statistics
+
+```{r}
+#| label: summary-stats
+#| echo: false
+#| results: asis
+
+summary_table <- data.frame(
+  Variable = c("Hours", "Volume (BBLS)"),
+  Mean = c(mean(Train_Tracking$Hours),
+           mean(Train_Tracking$`Volume (BBLS)`)),
+  Median = c(median(Train_Tracking$Hours),
+             median(Train_Tracking$`Volume (BBLS)`)),
+  Variance = c(var(Train_Tracking$Hours),
+               var(Train_Tracking$`Volume (BBLS)`)),
+  SD = c(sd(Train_Tracking$Hours),
+         sd(Train_Tracking$`Volume (BBLS)`))
+)
+
+stargazer(summary_table,
+          type = "html",
+          summary = FALSE,
+          title = "Summary Statistics",
+          digits = 2,
+          rownames = FALSE)
+```
+## Plots
+
+### Dependent Variable: Hours
+
+```{r}
+#| label: histogram-hours
+#| echo: false
+#| warning: false
+
+ggplot(Train_Tracking, aes(x = Hours)) +
+  geom_histogram(bins = 10, fill = "lightblue", color = "white") +
+  labs(
+    title = "Distribution of Load Time (Hours)",
+    x = "Hours",
+    y = "Frequency"
+  )
+```
+
+The histogram shows that most load times fall between approximately 20 and 30 hours, with a concentration around the mid-20s. The distribution is slightly right-skewed, with a few higher-duration observations, including one significant outlier.
+
+```{r}
+#| label: histogram-volume
+#| echo: false
+#| warning: false
+
+ggplot(Train_Tracking, aes(x = `Volume (BBLS)`)) +
+  geom_histogram(bins = 10, fill = "lightgreen", color = "white") +
+  labs(
+    title = "Distribution of Shipment Volume (BBLS)",
+    x = "Volume (BBLS)",
+    y = "Frequency"
+  )
+```
+
+The histogram indicates that shipment volumes are concentrated between approximately 65,000 and 72,000 BBLS. The distribution is slightly left-skewed, with a few lower-volume observations that appear as outliers.
+
+```{r}
+#| label: scatterplot-volume-hours
+#| echo: false
+#| warning: false
+
+ggplot(Train_Tracking, aes(x = `Volume (BBLS)`, y = Hours)) +
+  geom_point(color = "steelblue") +
+  geom_smooth(method = "lm", se = FALSE, color = "darkred") +
+  labs(
+    title = "Volume vs Load Time",
+    x = "Volume (BBLS)",
+    y = "Hours"
+  )
+
+```
+
+The scatterplot shows a positive relationship between shipment volume and total load time, as indicated by the upward-sloping regression line. However, the data points are widely dispersed, suggesting that the relationship is relatively weak.
+
+## Correlation and Covariance
+```{r}
+#| label: correlation_covariance
+#| echo: false
+#| warning: false
+#| message: false
+#| results: asis
+
+corr_table <- data.frame(
+  Measure = c("Correlation", "Covariance"),
+  Value = c(
+    cor(Train_Tracking$Hours, Train_Tracking$`Volume (BBLS)`),
+    cov(Train_Tracking$Hours, Train_Tracking$`Volume (BBLS)`)
+  )
+)
+
+stargazer(corr_table,
+          type = "html",
+          summary = FALSE,
+          title = "Correlation and Covariance",
+          digits = 4,
+          rownames = FALSE)
+```
+
+The correlation between shipment volume and total load time is 0.1767, indicating a weak positive relationship. As volume increases, load time tends to increase, but the relationship is not strong.
+
+The covariance is 6,437.17, which also indicates a positive relationship, though it is less directly interpretable because it depends on the scale of the data.
+
+This analysis uses a single independent variable, so no additional plots for multiple variables are included.
+
+## Regression Analysis
+```{r}
+#| label: regression
+#| echo: false
+#| warning: false
+#| message: false
+#| results: asis
+
+model <- lm(Hours ~ `Volume (BBLS)`, data = Train_Tracking)
+
+stargazer(model,
+          type = "html",
+          title = "Regression Results: Volume vs Load Time",
+          dep.var.labels = "Hours",
+          covariate.labels = "Volume (BBLS)",
+          digits = 4)
+```
+
+The regression results show that shipment volume has a statistically significant positive effect on total load time (p = 0.046).  
+  
+The coefficient for volume is 0.0002226, indicating that as shipment volume increases, load time also increases. An increase of 1,000 BBLS is associated with an increase of approximately 0.22 hours.  
+  
+However, the R² value of 0.031 indicates that only about 3.1% of the variation in load time is explained by shipment volume. This suggests that while volume has a measurable impact, other factors likely play a larger role in determining load time.
+
+## Conclusion
+
+The results partially support the hypothesis of a positive relationship between shipment volume and load time. While the relationship is statistically significant, it is weak, indicating that volume explains only a small portion of the variation in load time. This suggests that other operational factors play a larger role. An extreme outlier in load time was also observed and may have influenced the results. Overall, volume contributes to load time, but it is not the primary driver.
+
+## Works Cited:
+
+Clugy, Eric. Train Tracking Data. Unpublished dataset. Harvest Midstream, 2026.
